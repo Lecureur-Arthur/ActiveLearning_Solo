@@ -115,3 +115,21 @@ L'ajout progressif de données, même choisies aléatoirement, permet d'adapter 
 1. **Evidence "Domain Gap"** : Lancer `Python/IA/Domain_A/test_domainB.py`.
 1. **Active Learning** : Lancer `Python/IA/Domain_B/active_learning_random.py`.
 1. **Benchmark** : Lancer `Python/IA/Domain_B/test_Random_Strategy.py`.
+
+
+---
+
+Prochaines étapes (Roadmap)
+j'ai maintenant :
+
+Baseline : Random Sampling (le script précédent).
+
+Uncertainty 1 : MC Dropout (ce script).
+
+Pour répondre au cahier des charges ("plus de deux méthodes basées sur la diversité" et "plusieurs sur la confiance"), voici ce que je peux coder ensuite :
+
+Uncertainty 2 (Predict its own errors) : Nous entraînerons un petit "Module de Perte" qui apprend à prédire la Loss du modèle principal.
+
+Diversity 1 (Cluster-based / K-Means) : On extrait les "features" (avant la dernière couche), on fait des clusters, et on prend les images les plus représentatives (Centroids).
+
+Diversity 2 (Outliers / Similarity) : On prend les images qui sont le plus "loin" mathématiquement de ce qu'on a déjà dans le train set.
