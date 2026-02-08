@@ -110,8 +110,8 @@ L'ajout progressif de données, même choisies aléatoirement, permet d'adapter 
 ### Comment utiliser ce code
 
 1. **Split des données** : Lancer `Python/IA/SplitTrainTest/DomainA/SplitDomainA.py` (et B `Python/IA/SplitTrainTest/DomainB/SplitDomainB.py`).
-2. **Entraînement Source** : Lancer `Python/IA/Domain_A/train.py`.
-3. **Test source** : Lancer `Python/IA/Domain_A/test_domainA.py`.
-4. **Evidence "Domain Gap"** : Lancer `Python/IA/Domain_A/test_domainB.py`.
-3. **Active Learning** : Lancer `Python/IA/Domain_B/active_learning_random.py`.
-4. **Benchmark** : Lancer `Python/IA/Domain_B/test_Random_Strategy.py`.
+1. **Entraînement Source** : Lancer `Python/IA/Domain_A/train.py`.
+1. **Test source** : Lancer `Python/IA/Domain_A/test_domainA.py`.
+1. **Evidence "Domain Gap"** : Lancer `Python/IA/Domain_A/test_domainB.py`.
+1. **Active Learning** : Lancer `Python/IA/Domain_B/active_learning_random.py`.
+1. **Benchmark** : Lancer `Python/IA/Domain_B/test_Random_Strategy.py`.
