@@ -9,6 +9,12 @@ Ce projet explore l'efficacité des stratégies d'**Apprentissage Actif (Active 
 
 L'objectif est d'adapter un modèle de régression (ResNet-18), entraîné sur un environnement initial (**domain A**), vers un nouvel environnement (**Domaine B**) en utilisant un minimum de données annotées. Nous utilisont une approche de *Fine-Tuning* progressif basée sur une sélection aléatoire (Random Sampling) pour établir une *baseline*.
 
+### Qu'est-ce que le Fine-Tuning ?
+
+Le **Fine-Tuning** (ou ajustement fin) est une technique qui consiste à prendre un modèle d'IA déjà performant (pré-entraîné sur une grande base de données) et à le **spécialiser** pour une tâche précise.
+
+Dans ce projet, nous n'avons pas réappris au modèle "comment voir" ou "comment calculer" depuis zéro. Nous avons plutôt adapté ses connaissances existantes pour qu'il devienne expert spécifiquement sur les données du **Domaine A**.
+
 ---
 
 ## 2. Protocole Expérimental et Données
@@ -41,10 +47,14 @@ Le modèle a été entraîné exclusivement sur le Domaine A pour établir une p
 
 ### 3.2. Performance sur le Test Set A
 
-* **Métrique** : MSE Loss (Mean Squared Error).
-* **Résultat visuel** : Le graphique de parité (Réel vs Prédit) montre une forte corrélation.
+La courbe d'apprentissage ci-dessous illustre l'évolution de la MSE Loss sur 20 époques pour la tâche de régression sur le Domaine A.
 
-![Graph Training Domaine A](Python/IA/Domain_A/saved_models/training_curve.png)
+![Courbe d'apprentissage Domaine A](Python/IA/Domain_A/saved_models/training_curve.png)
+
+**Interprétation des courbes :**
+1.  **Apprentissage efficace :** La courbe bleue (*Train Loss*) montre une descente rapide et régulière, confirmant que le modèle assimile les caractéristiques du Domaine A.
+2.  **Validation et Robustesse :** La courbe orange (*Val Loss*) suit la même tendance descendante que l'entraînement. Bien que présentant des oscillations (typiques lors d'un fine-tuning sur des datasets restreints), elle rejoint la courbe d'entraînement à la fin du cycle.
+3.  **Point d'arrêt :** L'entraînement est arrêté à l'époque 20, moment où l'erreur de validation est minimisée et stabilisée, garantissant un modèle optimal sans dégradation des performances.
 
 ---
 
