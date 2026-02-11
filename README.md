@@ -1,4 +1,31 @@
+# A faire pour la suite :
+### Pour le rapoort scientifque :
+* Repcherche pour faire un petit état de l'art de 1 ou 2 paragraphe avec ce que je fait
+    * C'est une méthode fascinante et très élégante, souvent appelée "Learning Loss" (basée sur le papier de recherche Yoo et al., CVPR 2019).
 
+
+### A FAIRE EN CODE :
+* Stratégie Random Robust
+    * Enregistrer chaque modele pour éviter de refaire le train a chaque fois
+    * Modifier le graph pour afficher l'écrat type a chaque ratio
+
+* Stratégie mixte :
+    * Random Robust X kmeans
+    * kmeans X outliers
+    * Expliquer comment mettre en place ces stratégie
+
+
+### A FAIRE DANS LE README :
+* Comparaison entre :
+    * random robust vs mcdropout
+    * random robust vs leaningloss
+    * random robust vs kmeans
+    * random robust vs outliers
+
+
+### MODIFICATION A FAIRE IMPORTANTE :
+* Faire un model Dumy
+* Changer les domaine B pour avoir par exemple les 3 dernier dossier en test e le reste en train (prendre la meme personne par exemple Gaïa [Dossier 10, 11 et 12])
 ---
 
 # Adaptation de Domain et Apprentissage Actif pour la Régression sur Images
@@ -46,6 +73,8 @@ Le modèle a été entraîné exclusivement sur le Domaine A pour établir une p
 *Le modèle converge rapidement sans signe majeur de sur-apprentissage (overfitting), validant l'architecture choisie*
 
 ### 3.2. Performance sur le Test Set A
+
+> Pas ouf le graph d'après le prof (Pas logique les courbe [Potentiellement enlever le lissage])
 
 La courbe d'apprentissage ci-dessous illustre l'évolution de la MSE Loss sur 20 époques pour la tâche de régression sur le Domaine A.
 
@@ -98,6 +127,8 @@ Nous avons simulé un scénario d'Active Learning où nous annotons progressivem
 
 ### 5.3. Benchmark : Oubli Catastrophique (A vs B)
 
+> Pas forcement utile pour le client de voir par rapport a notre domaine A
+
 ![Benchmark A vs B](Python/IA/Domain_B/AL_Results/Random_Strategy/benchmark_A_vs_B.png)
 
 Nous avons évalué chaque modèle intermédiaire sur les deux domaines pour surveiller l'oubli catastrophique (*Catastrophic Forgetting*).
@@ -109,13 +140,83 @@ Nous avons évalué chaque modèle intermédiaire sur les deux domaines pour sur
 
 ---
 
-## 6. Conclusion Partielle
+## 7. Phase 3 : Active Learning (Stratégie Random Robust)
 
-L'ajout progressif de données, même choisies aléatoirement, permet d'adapter efficacement le modèle au nouvel environnement. Avec seulement **[X]%** des données du Domaine B, nous atteignons une performance comparable à un entraînement complet.
-
-**Prochaine étape** : Comparer cette stratégie "Random" avec une stratégie plus intelligente (basée sur l'incertitude ou l'entropie) pour voir si nous pouvons converger encore plus vite.
+![Graph Training Random Robust]()
 
 ---
+
+## 8. Phase 3 : Active Learning (Stratégie MC Dropout)
+
+> Expliquer ce que fait le modèle
+> C'est a dire ici qu'il desactive certain neurone pour voir s'il change son appprentissage
+
+### 8.1. Résultat : courbe d'Apprentissage Active
+
+![Graph Training MC Dropout](Python/IA/Domain_B/AL_Results/Uncertainty_MC_Dropout/mcdropout_curve.png)
+
+*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
+
+### 8.2. Benchmark : comparaison avec random robust
+
+---
+
+## 9. Phase 3 : Active Learning (Stratégie Loss prediction)
+
+### 9.1. Résultat : courbe d'Apprentissage Active
+
+> Expliquer ce que fait le modèle
+> C'est a dire ici, il prédit les prochaine Loss
+
+![Graph Training Loss Prediction](Python/IA/Domain_B/AL_Results/Uncertainty_LearningLoss/learning_loss_curve.png)
+
+*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
+
+### 9.2. Benchmark : comparaison avec random robust
+
+---
+
+## 10. Phase 3 : Active Learning (Stratégie kmeans)
+
+> Expliquer ce que fait le modèle
+> C'est a dire ici, il fait différent cluster (dans le code en dessous n_needed) et chosis un point dans chaque cluster
+
+
+```python
+    target_total = int(len(files_B_pool) * (pct / 100.0))
+    current_count = len(labeled_B)
+    n_needed = target_total - current_count
+```
+
+### 10.1. Résultat : courbe d'Apprentissage Active
+
+![Graph Training kmeans](Python/IA/Domain_B/AL_Results/Diversity_KMeans/kmeans_curve.png)
+
+*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
+
+### 10.2. Benchmark : comparaison avec random robust
+
+---
+
+## 11. Phase 3 : Active Learning (Stratégie outliers)
+
+> Expliquer ce que fait le modèle
+> JSP ce qu'il fait
+
+### 11.1. Résultat : courbe d'Apprentissage Active
+
+![Graph Training outliers](Python/IA/Domain_B/AL_Results/Diversity_Outliers/outliers_curve.png)
+
+*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
+
+### 11.2. Benchmark : comparaison avec random robust
+
+---
+
+## 12. Benchmark de toutes les stratégies : 
+
+![Benchmark All Models](Python/IA/Domain_B/AL_Results/FINAL_BENCHMARK/FINAL_BENCHMARK_GRAPH.png)
+
 
 ### Comment utiliser ce code
 
@@ -125,21 +226,3 @@ L'ajout progressif de données, même choisies aléatoirement, permet d'adapter 
 1. **Evidence "Domain Gap"** : Lancer `Python/IA/Domain_A/test_domainB.py`.
 1. **Active Learning** : Lancer `Python/IA/Domain_B/active_learning_random.py`.
 1. **Benchmark** : Lancer `Python/IA/Domain_B/test_Random_Strategy.py`.
-
-
----
-
-Prochaines étapes (Roadmap)
-j'ai maintenant :
-
-Baseline : Random Sampling (le script précédent).
-
-Uncertainty 1 : MC Dropout (ce script).
-
-Pour répondre au cahier des charges ("plus de deux méthodes basées sur la diversité" et "plusieurs sur la confiance"), voici ce que je peux coder ensuite :
-
-Uncertainty 2 (Predict its own errors) : Nous entraînerons un petit "Module de Perte" qui apprend à prédire la Loss du modèle principal.
-
-Diversity 1 (Cluster-based / K-Means) : On extrait les "features" (avant la dernière couche), on fait des clusters, et on prend les images les plus représentatives (Centroids).
-
-Diversity 2 (Outliers / Similarity) : On prend les images qui sont le plus "loin" mathématiquement de ce qu'on a déjà dans le train set.
