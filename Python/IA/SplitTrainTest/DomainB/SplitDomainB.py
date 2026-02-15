@@ -15,7 +15,7 @@ dest_train = project_root / "data" / "Split" / "Domain_B" / "train"
 dest_test  = project_root / "data" / "Split" / "Domain_B" / "test"
 
 # Définition stricte des dossiers de test
-TEST_FOLDERS = ["9", "10", "11"]
+TEST_FOLDERS = ["10", "11", "12"]
 
 print("--- NOUVEAU SPLIT DOMAIN B (Par Dossier) ---")
 print(f"Source : {source_dir}")
