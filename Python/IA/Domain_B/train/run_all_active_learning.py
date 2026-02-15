@@ -122,6 +122,11 @@ global_results = {}
 # 4. PHASE 1 : RANDOM ROBUST
 # ==========================================
 print("\n--- [1/5] RANDOM ROBUST BASELINE ---")
+
+# Création du dossier principal pour le Random
+strat_dir_random = output_dir / "Random"
+os.makedirs(strat_dir_random, exist_ok=True)
+
 random_results = np.zeros((N_ROUNDS_RANDOM, len(BUDGET_WITH_ZERO)))
 
 for r in range(N_ROUNDS_RANDOM):
@@ -129,6 +134,10 @@ for r in range(N_ROUNDS_RANDOM):
     pool_copy = files_B_pool.copy()
     random.shuffle(pool_copy)
     labeled = []
+    
+    # Création d'un sous-dossier pour chaque round (Round_1, Round_2...)
+    round_dir = strat_dir_random / f"Round_{r+1}"
+    os.makedirs(round_dir, exist_ok=True)
     
     model = ResNetForImageClassification.from_pretrained(model_A_path).to(device)
     random_results[r, 0] = evaluate_mse(model, test_loader)
@@ -141,7 +150,15 @@ for r in range(N_ROUNDS_RANDOM):
         train_loader = DataLoader(ALDataset(files_A + labeled, processor), batch_size=32, shuffle=True)
         model = ResNetForImageClassification.from_pretrained(model_A_path).to(device)
         model = train_standard(model, train_loader, desc_prefix=f"Random {pct}%")
-        random_results[r, step_idx+1] = evaluate_mse(model, test_loader)
+        
+        mse = evaluate_mse(model, test_loader)
+        random_results[r, step_idx+1] = mse
+        
+        # --- NOUVEAU : SAUVEGARDE DU MODELE RANDOM ---
+        save_path = round_dir / f"model_{pct}pct"
+        model.save_pretrained(save_path)
+        processor.save_pretrained(save_path)
+        # ---------------------------------------------
 
 rand_mean = np.mean(random_results, axis=0)
 rand_std = np.std(random_results, axis=0)
