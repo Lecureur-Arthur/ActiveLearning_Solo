@@ -10,7 +10,7 @@ script_dir = Path(__file__).resolve().parent
 # Ajustez le nombre de .parents selon l'emplacement exact de ce script
 project_root = script_dir.parents[3] 
 
-source_dir = project_root / "data" / "processed_framed" / "Domain_B"
+source_dir = project_root / "data" / "processed_frames" / "Domain_B"
 dest_train = project_root / "data" / "Split" / "Domain_B" / "train"
 dest_test  = project_root / "data" / "Split" / "Domain_B" / "test"
 
