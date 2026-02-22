@@ -14,6 +14,9 @@
     * kmeans X outliers
     * Expliquer comment mettre en place ces stratégie
 
+    * Sequential combination
+    * Integrated scores
+
 
 ### A FAIRE DANS LE README :
 * Comparaison entre :
