@@ -1,49 +1,16 @@
-# A faire pour la suite :
-### Pour le rapoort scientifque :
-* Repcherche pour faire un petit état de l'art de 1 ou 2 paragraphe avec ce que je fait
-    * C'est une méthode fascinante et très élégante, souvent appelée "Learning Loss" (basée sur le papier de recherche Yoo et al., CVPR 2019).
+# Eye Tracking via Active Learning : Adaptation de Domaine et Régression sur Images
 
-
-### A FAIRE EN CODE :
-* Stratégie Random Robust
-    * Enregistrer chaque modele pour éviter de refaire le train a chaque fois
-    * Modifier le graph pour afficher l'écrat type a chaque ratio
-
-* Stratégie mixte :
-    * Random Robust X kmeans
-    * kmeans X outliers
-    * Expliquer comment mettre en place ces stratégie
-
-    * Sequential combination
-    * Integrated scores
-
-
-### A FAIRE DANS LE README :
-* Comparaison entre :
-    * random robust vs mcdropout
-    * random robust vs leaningloss
-    * random robust vs kmeans
-    * random robust vs outliers
-
-
-### MODIFICATION A FAIRE IMPORTANTE :
-* Faire un model Dumy
-* Changer les domaine B pour avoir par exemple les 3 dernier dossier en test e le reste en train (prendre la meme personne par exemple Gaïa [Dossier 10, 11 et 12])
----
-
-# Adaptation de Domain et Apprentissage Actif pour la Régression sur Images
-
-Ce projet explore l'efficacité des stratégies d'**Apprentissage Actif (Active Learning)** pour résoudre le problème du **décalage de distribution (Domain shift)** dans un contexte de régression visuelle (prédiction de coordonnées).
+Ce projet explore l'efficacité des stratégies d'**Apprentissage Actif (Active Learning)** pour résoudre le problème du **décalage de distribution (Domain Shift)** dans un contexte de régression visuelle (prédiction des coordonnées du regard sur un écran à partir d'une simple webcam).
 
 ## 1. Contexte et Objectifs
 
-L'objectif est d'adapter un modèle de régression (ResNet-18), entraîné sur un environnement initial (**domain A**), vers un nouvel environnement (**Domaine B**) en utilisant un minimum de données annotées. Nous utilisont une approche de *Fine-Tuning* progressif basée sur une sélection aléatoire (Random Sampling) pour établir une *baseline*.
+L'objectif principal est d'adapter un modèle de régression profond (ResNet-18), initialement entraîné dans un environnement très contrôlé (**Domaine A**), vers de nouveaux environnements variables (**Domaine B** : nouveaux visages, lumières différentes, port de lunettes).
+
+Pour éviter d'avoir à ré-annoter manuellement des milliers d'images pour chaque nouvel utilisateur, nous utilisons des algorithmes d'**Active Learning**. L'idée est de laisser l'IA sélectionner intelligemment une infime fraction (1% à 5%) des images les plus "utiles" du Domaine B pour se ré-entraîner (Fine-Tuning), surpassant ainsi une sélection purement aléatoire.
 
 ### Qu'est-ce que le Fine-Tuning ?
 
-Le **Fine-Tuning** (ou ajustement fin) est une technique qui consiste à prendre un modèle d'IA déjà performant (pré-entraîné sur une grande base de données) et à le **spécialiser** pour une tâche précise.
-
-Dans ce projet, nous n'avons pas réappris au modèle "comment voir" ou "comment calculer" depuis zéro. Nous avons plutôt adapté ses connaissances existantes pour qu'il devienne expert spécifiquement sur les données du **Domaine A**.
+Le **Fine-Tuning** (ou ajustement fin) est une technique consistant à prendre un modèle d'IA pré-entraîné sur une vaste base de données (ici ImageNet) et à le spécialiser pour une tâche précise. Dans ce projet, nous n'apprenons pas au modèle "comment voir" depuis zéro, mais nous adaptons ses connaissances pour qu'il devienne expert sur notre tâche d'Eye Tracking.
 
 ---
 
@@ -51,181 +18,93 @@ Dans ce projet, nous n'avons pas réappris au modèle "comment voir" ou "comment
 
 ### 2.1. Architecture du Modèle
 
-* **Modèle** : ResNet-18 pré-entraîné sur ImageNet.
-* **Tâche** : Régression de coordonnées (X, Y).
+* **Modèle** : ResNet-18 pré-entraîné.
+* **Tâche** : Régression spatiale des coordonnées (X, Y) du regard.
 * **Fonction de perte (Loss)** : MSE (Mean Squared Error).
 * **Résolution d'entrée** : 1920x1080 (Full HD).
 
 ### 2.2. Jeux de Données (Datasets)
 
-Les données sont divisées en deux domaines distincts (environnements différents).
+Les données sont réparties en deux domaines distincts pour simuler le changement d'environnement :
 
 | Domaine | Rôle | Train Split | Test Split | Description |
 | --- | --- | --- | --- | --- |
-| **Domaine A (Source)** | Apprentissage Initial | **75%** | **25%** | Environnement de référence sur lequel le modèle apprend initialement. |
-| **Domaine B (Cible)** | Adaptation & Active Learning | **80%** | **20%** | Nouvel environnement. Le set "Train" sert de "Pool" non labellisé pour l'Active Learning. |
+| **Domaine A (Source)** | Apprentissage Initial | **75%** | **25%** | Environnement de référence parfait (1 individu, bonne lumière, fond neutre). |
+| **Domaine B (Cible)** | Adaptation & Active Learning | **80%** | **20%** | Nouveaux environnements complexes. Le set "Train" sert de réservoir (*Pool*) non labellisé pour l'Active Learning. |
 
 ---
 
-## 3. Phase 1 : Entraînement Supervisé (Domaine Source)
+## 3. Phase 1 : Entraînement Initial & Domain Gap
 
-Le modèle a été entraîné exclusivement sur le Domaine A pour établir une performance de référence.
+### 3.1. Entraînement Supervisé (Domaine A)
 
-### 3.1. Courbe d'apprentissage (Train vs Val)
+Le modèle est d'abord entraîné exclusivement sur le Domaine A. La courbe d'apprentissage montre une convergence rapide de l'erreur d'entraînement et de validation, validant notre choix d'architecture (ResNet-18). L'entraînement est arrêté à 20 époques via un *Early-Stopping* pour éviter le sur-apprentissage.
 
-*Le modèle converge rapidement sans signe majeur de sur-apprentissage (overfitting), validant l'architecture choisie*
+### 3.2. Mise en évidence du "Domain Gap"
 
-### 3.2. Performance sur le Test Set A
+En testant ce modèle directement sur les données inédites du Domaine B (sans ré-entraînement), nous observons une chute drastique des performances :
 
-> Pas ouf le graph d'après le prof (Pas logique les courbe [Potentiellement enlever le lissage])
+* **MSE sur Domaine A (Test)** : `~0.0015` (Précision excellente)
+* **MSE sur Domaine B (Test)** : `~0.0891` (Erreur élevée)
 
-La courbe d'apprentissage ci-dessous illustre l'évolution de la MSE Loss sur 20 époques pour la tâche de régression sur le Domaine A.
-
-![Courbe d'apprentissage Domaine A](Python/IA/Domain_A/saved_models/training_curve.png)
-
-**Interprétation des courbes :**
-1.  **Apprentissage efficace :** La courbe bleue (*Train Loss*) montre une descente rapide et régulière, confirmant que le modèle assimile les caractéristiques du Domaine A.
-2.  **Validation et Robustesse :** La courbe orange (*Val Loss*) suit la même tendance descendante que l'entraînement. Bien que présentant des oscillations (typiques lors d'un fine-tuning sur des datasets restreints), elle rejoint la courbe d'entraînement à la fin du cycle.
-3.  **Point d'arrêt :** L'entraînement est arrêté à l'époque 20, moment où l'erreur de validation est minimisée et stabilisée, garantissant un modèle optimal sans dégradation des performances.
+Cette augmentation significative de l'erreur prouve l'existence d'un **Domain Shift**. Le modèle ne généralise pas face aux nouvelles conditions d'éclairage ou aux nouveaux visages. Une adaptation est indispensable.
 
 ---
 
-## 4. Phase 2 : Mise en évidence du "Domain Gap"
+## 4. Phase 2 : Stratégies d'Active Learning
 
-Avant toute adaptation, nous avons testé le modèle entraîné sur A directement sur les données du test du Domaine B.
+Pour adapter le modèle au Domaine B de manière économique, nous simulons l'ajout progressif de données annotées selon différents budgets (1%, 2%, 5%, 10%, 20%, 50%). Nous comparons plusieurs stratégies intelligentes à une sélection aléatoire de référence (*Random Robust*).
 
-### 4.1. Résultats (Inférence Directe)
+### 4.1. Baseline : Random Robust
 
-* **MSE sur Domaine A** : `0.001529` (Faible)
-* **MSE sur Domaine B** : `0.079102` (Élevée)
+* **Fonctionnement** : Sélectionne les images de manière totalement aléatoire. Pour lisser la variance statistique due au hasard, l'expérience est répétée plusieurs fois (N rounds) et les résultats sont moyennés pour obtenir une courbe de référence fiable avec son écart-type.
 
-### 4.2. Analyse
+### 4.2. Famille "Incertitude" (Uncertainty Sampling)
 
-L'augementation significative de l'erreur démontre un **Domain Shift**. Le modèle, bien que performant sur A, né généralise pas sur B car la distribution des pixels (éclairage, fond, position) a changé. L'entraînement sur A est nécessaire mais **insuffisant** pour le Domaine B. Cela justifie la mise en place d'une stratégie d'adaptation (Active Learning).
+Ces méthodes ciblent les images sur lesquelles le modèle "hésite" le plus.
 
----
+* **MC Dropout** : Maintient la désactivation aléatoire des neurones (*Dropout*) active pendant l'inférence. Le modèle effectue plusieurs prédictions pour la même image. Plus les prédictions varient (forte variance), plus l'image est jugée incertaine et est sélectionnée pour être annotée.
+* **Learning Loss** : Approche très élégante (Yoo et al., CVPR 2019) qui ajoute un module secondaire au réseau. Ce module a pour unique but de prédire la magnitude de l'erreur (la *Loss*) que le réseau principal va commettre sur une image. Les images avec la plus forte erreur prédite sont sélectionnées.
 
-## 5. Phase 3 : Active Learning (Stratégie Random)
+### 4.3. Famille "Diversité" (Diversity Sampling)
 
-Nous avons simulé un scénario d'Active Learning où nous annotons progressivement des données du Domaine B pour adapter le modèle (Fine-Tuning).
+Ces méthodes forcent l'exploration spatiale du nouveau domaine pour éviter la redondance (ex: sélectionner 50 frames vidéo quasi identiques).
 
-### 5.1. Méthodologie
+* **K-Means (Clustering)** : Extrait les caractéristiques profondes (*features*) de toutes les images non annotées et les regroupe en $K$ clusters (où $K$ est le budget d'images désiré). L'algorithme sélectionne ensuite l'image la plus proche du centre de chaque cluster (le centroïde), garantissant un panel d'images très variées.
+* **Outliers (Isolement)** : Calcule la distance mathématique de chaque image non annotée par rapport à toutes les images déjà connues par le modèle. L'algorithme sélectionne les images les plus lointaines/isolées pour forcer le modèle à découvrir des situations inédites.
 
-* **Stratégie** : Random Sampling (Sélection Aléatoire).
-* **Budger** : Ajout cumulatif de données du pool B.
-* Step 1 : 1% des données B.
-* Step 2 : 2% (total).
-* Step 3 : 5% (total).
-* Step 4 : 10% (total).
-* Step 5 : 20 % (total).
-* Step 6 : 50% (total).
+### 4.4. Famille "Stratégies Mixtes" (Hybrides)
 
-* **Technique** : À chaque étape, le modèle A est réchargé et *fine-tuné* sur le mélange `Train A + (Budget % du Train B)`.
+Face au constat que la diversité seule surpasse souvent l'incertitude pour éviter le sur-apprentissage, nous combinons les deux approches :
 
-### 5.2. Résultat : courbe d'Apprentissage Active
-
-![Graph Training Random](Python/IA/Domain_B/AL_Results/Random_Strategy/random_strategy_curve.png)
-
-*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
-
-### 5.3. Benchmark : Oubli Catastrophique (A vs B)
-
-> Pas forcement utile pour le client de voir par rapport a notre domaine A
-
-![Benchmark A vs B](Python/IA/Domain_B/AL_Results/Random_Strategy/benchmark_A_vs_B.png)
-
-Nous avons évalué chaque modèle intermédiaire sur les deux domaines pour surveiller l'oubli catastrophique (*Catastrophic Forgetting*).
-
-**Interprétation :**
-
-* **Courbe Orange (Domaine B)** : L'erreur diminue drastiquement dès les premiers pourcentages, prouvant l'efficacité du Fine-Tuning.
-* **Courbe Bleue (Domaine A)** : Le modèle a réussi à généraliser sans oublier ses connaissances antérieurs.
+* **Sequential Combination** : Agit en entonnoir. Présélectionne d'abord un grand groupe d'images difficiles grâce au *MC Dropout*, puis applique un *K-Means* uniquement sur ce sous-groupe pour en extraire les images à la fois difficiles ET différentes.
+* **Integrated Scores** : Calcule une note sur 20 pour chaque image combinant 50% de son score d'incertitude (Dropout) et 50% de son score de distance spatiale (Outliers). Les images ayant la meilleure note globale sont sélectionnées.
 
 ---
 
-## 7. Phase 3 : Active Learning (Stratégie Random Robust)
+## 5. Synthèse et Benchmark Final
 
-![Graph Training Random Robust]()
+L'évaluation de toutes ces stratégies révèle l'efficacité redoutable de l'Active Learning. Les stratégies basées sur la **diversité spatiale (K-Means)** et les **stratégies mixtes (Integrated Scores)** atteignent des performances optimales (MSE ~0.061) avec seulement **1% à 5% de données annotées**, surpassant de loin un modèle ré-entraîné sur 50% de données tirées au hasard.
 
----
-
-## 8. Phase 3 : Active Learning (Stratégie MC Dropout)
-
-> Expliquer ce que fait le modèle
-> C'est a dire ici qu'il desactive certain neurone pour voir s'il change son appprentissage
-
-### 8.1. Résultat : courbe d'Apprentissage Active
-
-![Graph Training MC Dropout](Python/IA/Domain_B/AL_Results/Uncertainty_MC_Dropout/mcdropout_curve.png)
-
-*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
-
-### 8.2. Benchmark : comparaison avec random robust
+Au-delà de 10% de budget, l'accumulation d'images temporelles redondantes provoque un phénomène de sur-apprentissage spécifique au domaine, d'où la remontée de l'erreur en forme de "U" sur le graphique global.
 
 ---
 
-## 9. Phase 3 : Active Learning (Stratégie Loss prediction)
+## 6. Architecture du Code et Exécution
 
-### 9.1. Résultat : courbe d'Apprentissage Active
+Voici la marche à suivre pour reproduire les résultats du projet, de la préparation des données jusqu'à la génération des graphiques comparatifs :
 
-> Expliquer ce que fait le modèle
-> C'est a dire ici, il prédit les prochaine Loss
-
-![Graph Training Loss Prediction](Python/IA/Domain_B/AL_Results/Uncertainty_LearningLoss/learning_loss_curve.png)
-
-*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
-
-### 9.2. Benchmark : comparaison avec random robust
-
----
-
-## 10. Phase 3 : Active Learning (Stratégie kmeans)
-
-> Expliquer ce que fait le modèle
-> C'est a dire ici, il fait différent cluster (dans le code en dessous n_needed) et chosis un point dans chaque cluster
-
-
-```python
-    target_total = int(len(files_B_pool) * (pct / 100.0))
-    current_count = len(labeled_B)
-    n_needed = target_total - current_count
-```
-
-### 10.1. Résultat : courbe d'Apprentissage Active
-
-![Graph Training kmeans](Python/IA/Domain_B/AL_Results/Diversity_KMeans/kmeans_curve.png)
-
-*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
-
-### 10.2. Benchmark : comparaison avec random robust
-
----
-
-## 11. Phase 3 : Active Learning (Stratégie outliers)
-
-> Expliquer ce que fait le modèle
-> JSP ce qu'il fait
-
-### 11.1. Résultat : courbe d'Apprentissage Active
-
-![Graph Training outliers](Python/IA/Domain_B/AL_Results/Diversity_Outliers/outliers_curve.png)
-
-*Ce graphique illustre la réduction de l'erreur MSE sur le Domaine B en fonction du pourcentage de données annotées.*
-
-### 11.2. Benchmark : comparaison avec random robust
-
----
-
-## 12. Benchmark de toutes les stratégies : 
-
-![Benchmark All Models](Python/IA/Domain_B/AL_Results/FINAL_BENCHMARK/FINAL_BENCHMARK_GRAPH.png)
-
-
-### Comment utiliser ce code
-
-1. **Split des données** : Lancer `Python/IA/SplitTrainTest/DomainA/SplitDomainA.py` (et B `Python/IA/SplitTrainTest/DomainB/SplitDomainB.py`).
-1. **Entraînement Source** : Lancer `Python/IA/Domain_A/train.py`.
-1. **Test source** : Lancer `Python/IA/Domain_A/test_domainA.py`.
-1. **Evidence "Domain Gap"** : Lancer `Python/IA/Domain_A/test_domainB.py`.
-1. **Active Learning** : Lancer `Python/IA/Domain_B/active_learning_random.py`.
-1. **Benchmark** : Lancer `Python/IA/Domain_B/test_Random_Strategy.py`.
+1. **Split des données** :
+Lancer `Python/IA/SplitTrainTest/DomainA/SplitDomainA.py` (puis le script correspondant pour le Domain B) afin de générer les dossiers `train` et `test`.
+2. **Entraînement de la Baseline (Domaine A)** :
+Lancer `Python/IA/Domain_A/train.py`.
+3. **Mise en évidence du Domain Gap** :
+Lancer `Python/IA/Domain_A/test_domainB.py`.
+4. **Exécution de l'Active Learning** :
+Utiliser le pipeline global pour exécuter les stratégies d'incertitude et de diversité :
+`python Python/IA/Domain_B/run_pipeline.py`
+5. **Exécution des Stratégies Mixtes** :
+`python Python/IA/Domain_B/run_mixed_pipeline.py`
+6. **Évaluation et Génération des Graphiques Finaux** :
+Pour générer les graphiques lisibles et comparés à la Baseline Random :
+`python Python/IA/Domain_B/evaluate_final_3_curves.py`
